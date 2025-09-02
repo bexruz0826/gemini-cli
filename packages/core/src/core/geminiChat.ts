@@ -566,20 +566,13 @@ export class GeminiChat {
     let hasToolCall = false;
     let lastChunk: GenerateContentResponse | null = null;
 
-    let isStreamInvalid = false;
     let firstInvalidChunkEncountered = false;
-    let validChunkAfterInvalidEncountered = false;
 
     for await (const chunk of streamResponse) {
       hasReceivedAnyChunk = true;
       lastChunk = chunk;
 
       if (isValidResponse(chunk)) {
-        if (firstInvalidChunkEncountered) {
-          // A valid chunk appeared *after* an invalid one.
-          validChunkAfterInvalidEncountered = true;
-        }
-
         const content = chunk.candidates?.[0]?.content;
         if (content?.parts) {
           modelResponseParts.push(...content.parts);
@@ -592,7 +585,6 @@ export class GeminiChat {
           this.config,
           new InvalidChunkEvent('Invalid chunk received from stream.'),
         );
-        isStreamInvalid = true;
         firstInvalidChunkEncountered = true;
       }
       yield chunk;
@@ -602,27 +594,18 @@ export class GeminiChat {
       throw new EmptyStreamError('Model stream completed without any chunks.');
     }
 
+    const finishReason = lastChunk?.candidates?.[0]?.finishReason;
+    const isSuccessfulFinish =
+      finishReason === 'STOP' || finishReason === 'MAX_TOKENS';
+
     // --- FIX: The entire validation block was restructured for clarity and correctness ---
     // Only apply complex validation if an invalid chunk was actually found.
-    if (isStreamInvalid) {
-      // Fail immediately if an invalid chunk was not the absolute last chunk.
-      if (validChunkAfterInvalidEncountered) {
-        throw new EmptyStreamError(
-          'Model stream had invalid intermediate chunks without a tool call.',
-        );
-      }
+    if ((firstInvalidChunkEncountered || !isSuccessfulFinish) && !hasToolCall) {
+      // If the *only* invalid part was the last chunk, we still check its finish reason.
 
-      if (!hasToolCall) {
-        // If the *only* invalid part was the last chunk, we still check its finish reason.
-        const finishReason = lastChunk?.candidates?.[0]?.finishReason;
-        const isSuccessfulFinish =
-          finishReason === 'STOP' || finishReason === 'MAX_TOKENS';
-        if (!isSuccessfulFinish) {
-          throw new EmptyStreamError(
-            'Model stream ended with an invalid chunk and a failed finish reason.',
-          );
-        }
-      }
+      throw new EmptyStreamError(
+        'Model stream ended with an invalid chunk and a failed finish reason.',
+      );
     }
 
     // Bundle all streamed parts into a single Content object
