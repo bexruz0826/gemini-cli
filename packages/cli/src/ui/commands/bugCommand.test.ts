@@ -16,7 +16,18 @@ import { formatMemoryUsage } from '../utils/formatters.js';
 vi.mock('open');
 vi.mock('../../utils/version.js');
 vi.mock('../utils/formatters.js');
-vi.mock('@google/gemini-cli-core');
+vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    IdeClient: {
+      getInstance: vi.fn().mockResolvedValue({
+        getDetectedIdeDisplayName: vi.fn().mockReturnValue('VSCode'),
+      }),
+    },
+    sessionId: 'test-session-id',
+  };
+});
 vi.mock('node:process', () => ({
   default: {
     platform: 'test-platform',
@@ -31,9 +42,6 @@ describe('bugCommand', () => {
   beforeEach(() => {
     vi.mocked(getCliVersion).mockResolvedValue('0.1.0');
     vi.mocked(formatMemoryUsage).mockReturnValue('100 MB');
-    vi.mock('@google/gemini-cli-core', () => ({
-      sessionId: 'test-session-id',
-    }));
     vi.stubEnv('SANDBOX', 'gemini-test');
   });
 
@@ -48,9 +56,6 @@ describe('bugCommand', () => {
         config: {
           getModel: () => 'gemini-pro',
           getBugCommand: () => undefined,
-          getIdeClient: () => ({
-            getDetectedIdeDisplayName: () => 'VSCode',
-          }),
           getIdeMode: () => true,
         },
       },
@@ -84,9 +89,6 @@ describe('bugCommand', () => {
         config: {
           getModel: () => 'gemini-pro',
           getBugCommand: () => ({ urlTemplate: customTemplate }),
-          getIdeClient: () => ({
-            getDetectedIdeDisplayName: () => 'VSCode',
-          }),
           getIdeMode: () => true,
         },
       },

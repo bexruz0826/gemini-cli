@@ -93,7 +93,6 @@ interface MockServerConfig {
   getAllGeminiMdFilenames: Mock<() => string[]>;
   getGeminiClient: Mock<() => GeminiClient | undefined>;
   getUserTier: Mock<() => Promise<string | undefined>>;
-  getIdeClient: Mock<() => { getCurrentIde: Mock<() => string | undefined> }>;
   getScreenReader: Mock<() => boolean>;
 }
 
@@ -167,13 +166,6 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
         getIdeMode: vi.fn(() => true),
         getWorkspaceContext: vi.fn(() => ({
           getDirectories: vi.fn(() => []),
-        })),
-        getIdeClient: vi.fn(() => ({
-          getCurrentIde: vi.fn(() => 'vscode'),
-          getDetectedIdeDisplayName: vi.fn(() => 'VSCode'),
-          addStatusChangeListener: vi.fn(),
-          removeStatusChangeListener: vi.fn(),
-          getConnectionStatus: vi.fn(() => 'connected'),
         })),
         isTrustedFolder: vi.fn(() => true),
         getScreenReader: vi.fn(() => false),

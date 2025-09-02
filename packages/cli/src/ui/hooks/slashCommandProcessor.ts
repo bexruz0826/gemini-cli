@@ -17,6 +17,7 @@ import {
   SlashCommandStatus,
   ToolConfirmationOutcome,
   Storage,
+  IdeClient,
 } from '@google/gemini-cli-core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { runExitCleanup } from '../../utils/cleanup.js';
@@ -211,20 +212,22 @@ export const useSlashCommandProcessor = (
   );
 
   useEffect(() => {
-    if (!config) {
-      return;
-    }
+    (async () => {
+      if (!config) {
+        return;
+      }
 
-    const ideClient = config.getIdeClient();
-    const listener = () => {
-      reloadCommands();
-    };
+      const ideClient = await IdeClient.getInstance();
+      const listener = () => {
+        reloadCommands();
+      };
 
-    ideClient.addStatusChangeListener(listener);
+      ideClient.addStatusChangeListener(listener);
 
-    return () => {
-      ideClient.removeStatusChangeListener(listener);
-    };
+      return () => {
+        ideClient.removeStatusChangeListener(listener);
+      };
+    })();
   }, [config, reloadCommands]);
 
   useEffect(() => {

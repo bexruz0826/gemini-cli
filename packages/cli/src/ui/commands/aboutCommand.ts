@@ -9,6 +9,7 @@ import type { SlashCommand } from './types.js';
 import { CommandKind } from './types.js';
 import process from 'node:process';
 import { MessageType, type HistoryItemAbout } from '../types.js';
+import { IdeClient } from '@google/gemini-cli-core';
 
 export const aboutCommand: SlashCommand = {
   name: 'about',
@@ -31,7 +32,7 @@ export const aboutCommand: SlashCommand = {
     const gcpProject = process.env['GOOGLE_CLOUD_PROJECT'] || '';
     const ideClient =
       (context.services.config?.getIdeMode() &&
-        context.services.config?.getIdeClient()?.getDetectedIdeDisplayName()) ||
+        (await IdeClient.getInstance())?.getDetectedIdeDisplayName()) ||
       '';
 
     const aboutItem: Omit<HistoryItemAbout, 'id'> = {
