@@ -566,7 +566,7 @@ export class GeminiChat {
     let hasToolCall = false;
     let lastChunk: GenerateContentResponse | null = null;
 
-    let firstInvalidChunkEncountered = false;
+    let lastChunkIsInvalid = false;
 
     for await (const chunk of streamResponse) {
       hasReceivedAnyChunk = true;
@@ -585,7 +585,7 @@ export class GeminiChat {
           this.config,
           new InvalidChunkEvent('Invalid chunk received from stream.'),
         );
-        firstInvalidChunkEncountered = true;
+        lastChunkIsInvalid = true;
       }
       yield chunk;
     }
@@ -600,7 +600,7 @@ export class GeminiChat {
 
     // --- FIX: The entire validation block was restructured for clarity and correctness ---
     // Only apply complex validation if an invalid chunk was actually found.
-    if ((firstInvalidChunkEncountered || !isSuccessfulFinish) && !hasToolCall) {
+    if ((lastChunkIsInvalid || !isSuccessfulFinish) && !hasToolCall) {
       // If the *only* invalid part was the last chunk, we still check its finish reason.
 
       throw new EmptyStreamError(
