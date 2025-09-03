@@ -573,6 +573,7 @@ export class GeminiChat {
       lastChunk = chunk;
 
       if (isValidResponse(chunk)) {
+        lastChunkIsInvalid = false;
         const content = chunk.candidates?.[0]?.content;
         if (content?.parts) {
           modelResponseParts.push(...content.parts);
